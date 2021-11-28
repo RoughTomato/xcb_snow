@@ -6,6 +6,8 @@
 #include <stdbool.h>
 #include <xcb/xcb.h>
 
+#define MAX_FLAKE_COUNT 500
+
 uint32_t fg_color  = 0;
 uint32_t bg_color  = 255;
 uint16_t x         = 10;
@@ -42,7 +44,7 @@ static void simulate_snowfall(XCBConfig * config);
 static void generate_new_snowflakes(void);
 int msleep(long msec);
 
-xcb_point_t snow[500];
+xcb_point_t snow[MAX_FLAKE_COUNT];
 
 void terminate(int sigint) {
     fprintf(stderr, "terminating...");
@@ -124,7 +126,6 @@ static void generate_initial_snowflakes(XCBConfig * config) {
       xcb_point_t flake;
       flake.x = r_x;
       flake.y = r_y;
-     // fprintf(stderr, "Generating flake[%d] x(%d):y(%d)\n", i, r_x, 10);
       snow[i] = flake;
   }
 
@@ -145,7 +146,7 @@ static void simulate_snowfall(XCBConfig * config) {
       right--;
   }
 
-  for (int i = 0; i < 500; i++) {
+  for (int i = 0; i < MAX_FLAKE_COUNT; i++) {
     if(snow[i].y < 600) {
         snow[i].y++;
     }
@@ -156,10 +157,10 @@ static void simulate_snowfall(XCBConfig * config) {
       snow[i].x--;
     }
   }
-    xcb_clear_area(xcb_config.connection, 0, xcb_config.window,
+  xcb_clear_area(xcb_config.connection, 0, xcb_config.window,
                    0,0, 800, 600);
    xcb_poly_point(config->connection, XCB_COORD_MODE_ORIGIN,
-                  config->window, config->ctx, 100, snow);
+                  config->window, config->ctx, MAX_FLAKE_COUNT, snow);
 }
 
 int msleep(long msec) {
@@ -186,7 +187,7 @@ void generate_new_snowflakes(void) {
   double diff_t = difftime(now, start);
 
   if (diff_t > 0.255) {
-      if (snowflakeCount > 499) {
+      if (snowflakeCount > MAX_FLAKE_COUNT-1) {
         snowflakeCount = 0;
       }
 

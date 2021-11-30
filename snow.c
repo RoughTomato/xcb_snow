@@ -41,7 +41,9 @@ int snowflakeCount = 20;
 static void init(XCBConfig * config);
 static void generate_initial_snowflakes(XCBConfig * config);
 static void simulate_snowfall(XCBConfig * config);
+static void spawn_flake_at_cursor(xcb_button_press_event_t * btn_press);
 static void generate_new_snowflakes(void);
+static void handle_events(void);
 int msleep(long msec);
 
 xcb_point_t snow[MAX_FLAKE_COUNT];
@@ -69,6 +71,8 @@ int main() {
     msleep(200);
     generate_new_snowflakes();
     simulate_snowfall(&xcb_config);
+    handle_events
+  ();
   }
 
   exit(EXIT_SUCCESS);
@@ -100,7 +104,8 @@ static void init(XCBConfig * config) {
     config->window = xcb_generate_id(config->connection);
     config->mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
     config->values[0] = config->screen->black_pixel;
-    config->values[1] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_KEY_PRESS;
+    config->values[1] = XCB_EVENT_MASK_EXPOSURE  | XCB_EVENT_MASK_BUTTON_PRESS |
+                        XCB_EVENT_MASK_KEY_PRESS;
     xcb_create_window(config->connection, config->screen->root_depth,
                       config->window, config->screen->root,
                       10, 10, 800, 600, 1,
@@ -202,4 +207,35 @@ void generate_new_snowflakes(void) {
 
   // update time start
   time(&start);
+}
+
+static void handle_events(void) {
+  xcb_config.event = xcb_poll_for_event(xcb_config.connection);
+
+  if (!xcb_config.event) {
+    return;
+  }
+
+  switch (xcb_config.event->response_type & ~0x80) {
+    case XCB_BUTTON_PRESS:
+      xcb_button_press_event_t * press = (xcb_button_press_event_t * ) xcb_config.event;
+      spawn_flake_at_cursor(press);
+      break;
+    default:
+      break;
+    }
+
+    free (xcb_config.event);
+}
+
+static void spawn_flake_at_cursor(xcb_button_press_event_t * btn_press) {
+      if (snowflakeCount > MAX_FLAKE_COUNT-1) {
+        snowflakeCount = 0;
+      }
+
+      xcb_point_t flake;
+      flake.x = btn_press->event_x;
+      flake.y = btn_press->event_y;
+      snow[snowflakeCount] = flake;
+      snowflakeCount++;
 }
